@@ -1,8 +1,6 @@
 package edu.pe.cibertec.taller.servicio;
 
-import edu.pe.cibertec.taller.excepcion.EspecialidadIncorrectaException;
-import edu.pe.cibertec.taller.excepcion.HorarioNoPermitidoException;
-import edu.pe.cibertec.taller.excepcion.MecanicoNoEncontradoException;
+import edu.pe.cibertec.taller.excepcion.*;
 import edu.pe.cibertec.taller.modelo.Cita;
 import edu.pe.cibertec.taller.modelo.EstadoCita;
 import edu.pe.cibertec.taller.modelo.Mecanico;
@@ -230,12 +228,30 @@ class ServicioCitasImplTest {
 	void cancelarConAnticipacionSuficiente() {
 		// Arrange
 		// TODO
+		LocalDateTime fechaCita = LocalDateTime.of(2026, 9, DIA, 10, 0);
+		Cita cita = new Cita();
+		cita.setId(1L);
+		cita.setPlacaVehiculo(PLACA);
+		cita.setTipoServicio(TipoServicio.CAMBIO_ACEITE);
+		cita.setFechaHoraInicio(fechaCita);
+		cita.setMecanico(mecanicoT1);
+		cita.setEstado(EstadoCita.PROGRAMADA);
+
+		LocalDateTime reloj24HorasAntes = fechaCita.minusHours(24);
+		when(proveedorFechaHora.ahora()).thenReturn(reloj24HorasAntes);
+		when(repositorioCitas.findById(1L)).thenReturn(Optional.of(cita));
+		when(repositorioCitas.save(any(Cita.class))).thenAnswer(i -> i.getArgument(0));
 
 		// Act
 		// TODO
+		var resultado = servicioCitas.cancelarCita(1L);
 
 		// Assert
 		// TODO: penalidad 0, estado CANCELADA, notificacion
+		assertNotNull(resultado);
+		assertEquals(0.0, resultado.getMontoPenalidad());
+		assertEquals(EstadoCita.CANCELADA, cita.getEstado());
+		verify(servicioNotificaciones, times(1)).notificarCitaCancelada(any(Cita.class));
 	}
 
 	@Test
@@ -243,12 +259,29 @@ class ServicioCitasImplTest {
 	void cancelarConAvisoTardio() {
 		// Arrange
 		// TODO
+		LocalDateTime fechaCita = LocalDateTime.of(2026, 9, DIA, 10, 0);
+		Cita cita = new Cita();
+		cita.setId(1L);
+		cita.setPlacaVehiculo(PLACA);
+		cita.setTipoServicio(TipoServicio.CAMBIO_ACEITE);
+		cita.setFechaHoraInicio(fechaCita);
+		cita.setMecanico(mecanicoT1);
+		cita.setEstado(EstadoCita.PROGRAMADA);
+		// Reloj a 2 horas antes de la cita
+		LocalDateTime reloj2HorasAntes = fechaCita.minusHours(2);
+		when(proveedorFechaHora.ahora()).thenReturn(reloj2HorasAntes);
+		when(repositorioCitas.findById(1L)).thenReturn(Optional.of(cita));
+		when(repositorioCitas.save(any(Cita.class))).thenAnswer(i -> i.getArgument(0));
 
 		// Act
 		// TODO
+		var resultado = servicioCitas.cancelarCita(1L);
 
 		// Assert
 		// TODO
+		assertNotNull(resultado);
+		assertEquals(50.0, resultado.getMontoPenalidad());
+		assertEquals(EstadoCita.CANCELADA, cita.getEstado());
 	}
 
 	@Test
@@ -256,9 +289,14 @@ class ServicioCitasImplTest {
 	void cancelarCitaInexistente() {
 		// Arrange
 		// TODO
+		when(repositorioCitas.findById(99L)).thenReturn(Optional.empty());
 
 		// Act y Assert
 		// TODO
+		assertThrows(CitaNoEncontradaException.class, () -> {
+			servicioCitas.cancelarCita(99L);
+		});
+		verify(repositorioCitas, never()).save(any());
 	}
 
 	@Test
@@ -266,9 +304,18 @@ class ServicioCitasImplTest {
 	void cancelarCitaYaCancelada() {
 		// Arrange
 		// TODO
+		LocalDateTime fechaCita = LocalDateTime.of(2026, 9, DIA, 10, 0);
+		Cita cita = new Cita();
+		cita.setId(1L);
+		cita.setEstado(EstadoCita.CANCELADA);
+		when(repositorioCitas.findById(1L)).thenReturn(Optional.of(cita));
 
 		// Act y Assert
 		// TODO
+		assertThrows(CitaNoCancelableException.class, () -> {
+			servicioCitas.cancelarCita(1L);
+		});
+		verify(repositorioCitas, never()).save(any());
 	}
 
 	@Test
