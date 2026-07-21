@@ -116,26 +116,23 @@ class ServicioCitasImplTest {
 	}
 
 	@Test
-	@DisplayName("Un servicio pesado a las 07:00 se rechaza con HorarioNoPermitidoException")
+	@DisplayName("REPARACION_MOTOR a las 07:00 se rechaza con HorarioNoPermitidoException")
 	void rechazareparacion0700() {
 		// Arrange
 		// TODO
-		LocalDateTime fechaCita = LocalDateTime.of(2026, 9, DIA, 8, 0);
+		LocalDateTime fechaCita = LocalDateTime.of(2026, 9, DIA, 7, 0);
 		Mecanico mecanicoPesado = new Mecanico(2L, MECANICO, TipoServicio.REPARACION_MOTOR);
 		when(repositorioMecanicos.findById(2L)).thenReturn(Optional.of(mecanicoPesado));
-		when(proveedorFechaHora.ahora()).thenReturn(fechaReloj);
-		when(repositorioCitas.findByMecanicoIdAndEstado(2L, EstadoCita.PROGRAMADA)).thenReturn(new ArrayList<>());
-		when(repositorioCitas.save(any(Cita.class))).thenAnswer(i -> i.getArgument(0));
 
 		// Act y Assert
 		// TODO
-		Cita resultado = servicioCitas.agendarCita(2L, PLACA, TipoServicio.REPARACION_MOTOR, fechaCita);
-		assertNotNull(resultado);
-		assertEquals(EstadoCita.PROGRAMADA, resultado.getEstado());
+		assertThrows(HorarioNoPermitidoException.class, () -> {
+			servicioCitas.agendarCita(2L, PLACA, TipoServicio.REPARACION_MOTOR, fechaCita);
+		});
 	}
 
 	@Test
-	@DisplayName("Un servicio pesado a las 08:00 se acepta con limite inferior")
+	@DisplayName("REPARACION_MOTOR a las 08:00 se acepta con limite inferior")
 	void aceptareparacion0800() {
 		// Arrange
 		// TODO
@@ -154,7 +151,7 @@ class ServicioCitasImplTest {
 	}
 
 	@Test
-	@DisplayName("Un servicio pesado a las 08:00 se acepta con limite superior")
+	@DisplayName("REPARACION_MOTOR a las 11:00 se acepta con limite superior")
 	void aceptareparacion1100() {
 		// Arrange
 		// TODO
@@ -173,7 +170,7 @@ class ServicioCitasImplTest {
 	}
 
 	@Test
-	@DisplayName("Un servicio pesado a las 12:00 se rechaza con HorarioNoPermitidoException")
+	@DisplayName("REPARACION_MOTOR a las 12:00 se rechaza con HorarioNoPermitidoException")
 	void rechazareparacion1200() {
 		// Arrange
 		// TODO
